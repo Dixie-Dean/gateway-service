@@ -1,15 +1,14 @@
 package dev.dixie.model.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
+@Builder
+@ToString
 @Entity
 @Table(schema = "public", name = "imager_user")
 public class ImagerUser {
@@ -19,8 +18,8 @@ public class ImagerUser {
     @Column(name = "user_id")
     private long userId;
 
-    @Column(name = "username", nullable = false)
-    private String username;
+    @Column(name = "firstname", nullable = false)
+    private String firstname;
 
     @Column(name = "lastname", nullable = false)
     private String lastname;
