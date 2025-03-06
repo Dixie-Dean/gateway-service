@@ -1,0 +1,47 @@
+databaseChangeLog:
+- changeSet:
+    id: 1741256538320-1
+    author: Dmitry Sokolov
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: imager_user_pkey
+            name: user_id
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: email
+            type: VARCHAR(255)
+        - column:
+            constraints:
+              nullable: false
+            name: lastname
+            type: VARCHAR(255)
+        - column:
+            constraints:
+              nullable: false
+            name: password
+            type: VARCHAR(255)
+        - column:
+            name: role
+            type: VARCHAR(255)
+        - column:
+            constraints:
+              nullable: false
+            name: username
+            type: VARCHAR(255)
+        tableName: imager_user
+- changeSet:
+    id: 1741256538320-2
+    author: Dmitry Sokolov
+    changes:
+    - addUniqueConstraint:
+        columnNames: email
+        constraintName: imager_user_email_key
+        tableName: imager_user

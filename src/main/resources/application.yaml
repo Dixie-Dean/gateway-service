@@ -3,7 +3,7 @@ spring:
     name: gateway-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/imager_database
+    url: jdbc:postgresql://localhost:5433/gateway_database
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
