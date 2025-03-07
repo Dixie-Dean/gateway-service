@@ -1,12 +1,15 @@
 package dev.dixie.service;
 
+import com.nimbusds.jose.shaded.gson.Gson;
 import dev.dixie.model.dto.ImagerPostDTO;
+import dev.dixie.model.dto.ImagerPostUploadData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -28,14 +31,22 @@ public class GatewayService {
     private final static String EDIT_URL = "/edit";
     private final static String DELETE_URL = "/delete";
     private final RestTemplate restTemplate;
+    private final Gson jsonParser = new Gson();
 
-    public ResponseEntity<String> uploadImagerPost(String payloadJson, MultipartFile image) throws IOException {
-        log.info("UploadImagerPost | JSON:{}, Image:{}", payloadJson, image);
+    public ResponseEntity<String> uploadImagerPost(String payloadJson, MultipartFile image, Authentication authentication) throws IOException {
+        var email = authentication.getName();
+        log.info("UploadImagerPost | JSON:{}, Email:{}, Image:{}", payloadJson, email, image);
         var uri = UriComponentsBuilder.fromUriString(BASE_URL + UPLOAD_URL).toUriString();
         var body = new LinkedMultiValueMap<>();
-        body.add("data", payloadJson);
+        body.add("data", appendEmail(payloadJson, email));
         body.add("image", convertToResource(image));
         return restTemplate.postForEntity(uri, new HttpEntity<>(body, setHeaders()), String.class);
+    }
+
+    private String appendEmail(String json, String email) {
+        var imagerPostUploadData = jsonParser.fromJson(json, ImagerPostUploadData.class);
+        imagerPostUploadData.setEmail(email);
+        return jsonParser.toJson(imagerPostUploadData);
     }
 
     private HttpHeaders setHeaders() {

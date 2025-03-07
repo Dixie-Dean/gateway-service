@@ -28,4 +28,11 @@ public class UserRepository {
         var imagerUser = query.getSingleResult();
         return Optional.ofNullable(imagerUser);
     }
+
+    public Boolean isPresent(String email) {
+        var query = entityManager.createQuery(
+                "SELECT COUNT(i) > 0 FROM ImagerUser i WHERE i.email = :email", Boolean.class);
+        query.setParameter("email", email);
+        return query.getSingleResult();
+    }
 }

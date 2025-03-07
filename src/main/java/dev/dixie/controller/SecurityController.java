@@ -1,12 +1,12 @@
 package dev.dixie.controller;
 
-import dev.dixie.model.dto.SignUpData;
+import dev.dixie.exception.EmailAlreadyTakenException;
 import dev.dixie.model.dto.SignInData;
+import dev.dixie.model.dto.SignUpData;
 import dev.dixie.service.Security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,7 +18,7 @@ public class SecurityController {
     private final Security securityService;
 
     @PostMapping("/sign-up")
-    public ResponseEntity<String> register(@RequestBody SignUpData signUpData) {
+    public ResponseEntity<String> register(@RequestBody SignUpData signUpData) throws EmailAlreadyTakenException {
         var response = securityService.signUp(signUpData);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

@@ -42,7 +42,9 @@ public class SecurityConfig {
 
     private final static String ALGORITHM = "RSA";
 
+    private final CustomAuthenticationEntryPoint entryPoint;
     private final UserRepository userRepository;
+
     private RSAPublicKey publicKey;
     private RSAPrivateKey privateKey;
 
@@ -64,8 +66,10 @@ public class SecurityConfig {
                     auth.requestMatchers("/sign-in").permitAll();
                     auth.anyRequest().authenticated();
                 })
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt((Customizer.withDefaults())))
+                .oauth2ResourceServer(oauth2 -> {
+                    oauth2.jwt((Customizer.withDefaults()));
+                    oauth2.authenticationEntryPoint(entryPoint);
+                })
                 .sessionManagement(sessions ->
                         sessions.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
@@ -103,18 +107,5 @@ public class SecurityConfig {
     public JwtDecoder jwtDecoder() {
         return NimbusJwtDecoder.withPublicKey(this.publicKey).build();
     }
-
-//    @Bean
-//    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-//        JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-//
-//        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("authorities");
-//        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
-//
-//        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-//        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
-//        return jwtAuthenticationConverter;
-
-//    }
 }
 
