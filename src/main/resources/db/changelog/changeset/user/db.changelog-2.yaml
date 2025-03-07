@@ -1,0 +1,10 @@
+databaseChangeLog:
+- changeSet:
+    id: username-to-firstname
+    author: Dmitry Sokolov
+    changes:
+        - renameColumn:
+              tableName: imager_user
+              oldColumnName: username
+              newColumnName: firstname
+              columnDataType: VARCHAR(255)

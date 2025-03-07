@@ -7,7 +7,7 @@ import lombok.*;
 @Getter
 @Setter
 @ToString
-public class RegisterData {
+public class SignUpData {
     private String firstname;
     private String lastname;
     private String email;
