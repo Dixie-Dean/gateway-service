@@ -32,8 +32,4 @@ public class ImagerUser {
 
     @Column(name = "role")
     private String role;
-
-    //TODO: snippets => posts
-//    @OneToMany(mappedBy = "id", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Snippet> snippets;
 }

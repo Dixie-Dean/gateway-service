@@ -1,5 +1,6 @@
 package dev.dixie.service;
 
+import dev.dixie.exception.EmailAlreadyTakenException;
 import dev.dixie.model.dto.SignInData;
 import dev.dixie.model.dto.SignUpData;
 import dev.dixie.model.entity.ImagerUser;
@@ -23,8 +24,17 @@ public class SecurityService implements Security {
     private final UserRepository userRepository;
 
     @Override
-    public String signUp(SignUpData signUpData) {
-        log.info("SignUp | SignUpData:{}", signUpData);
+    public String signUp(SignUpData signUpData) throws EmailAlreadyTakenException {
+        if (userRepository.isPresent(signUpData.getEmail())) {
+            var message = "User with such email [%s] already exists...".formatted(signUpData.getEmail());
+            throw new EmailAlreadyTakenException(message);
+        } else {
+            log.info("SignUp | SignUpData:{}", signUpData);
+            return persistUser(signUpData);
+        }
+    }
+
+    private String persistUser(SignUpData signUpData) {
         var imagerUser = ImagerUser.builder()
                 .email(signUpData.getEmail())
                 .firstname(signUpData.getFirstname())
