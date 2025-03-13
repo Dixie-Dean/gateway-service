@@ -29,13 +29,13 @@ public class GatewayController {
 
     @GetMapping("/post")
     public ResponseEntity<ImagerPostDTO> getImagerPost(@RequestParam String id) {
-        return gatewayService.getImagerPost(id);
+        return gatewayService.getCachedImagerPost(id);
     }
 
 
     @GetMapping("/posts")
-    public ResponseEntity<List<ImagerPostDTO>> getImagerPostsByUsername(@RequestParam String username) {
-        return gatewayService.getImagerPostsByUsername(username);
+    public ResponseEntity<List<ImagerPostDTO>> getImagerPostsByEmail(@RequestParam String email) {
+        return gatewayService.getCachedImagerPostsByEmail(email);
     }
 
     @PatchMapping("/edit")

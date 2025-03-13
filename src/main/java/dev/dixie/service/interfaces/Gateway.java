@@ -12,9 +12,13 @@ public interface Gateway {
 
     ResponseEntity<String> uploadImagerPost(String payloadJson, MultipartFile image, Authentication authentication) throws IOException;
 
+    ResponseEntity<ImagerPostDTO> getCachedImagerPost(String id);
+
     ResponseEntity<ImagerPostDTO> getImagerPost(String id);
 
-    ResponseEntity<List<ImagerPostDTO>> getImagerPostsByUsername(String username);
+    ResponseEntity<List<ImagerPostDTO>> getCachedImagerPostsByEmail(String email);
+
+    ResponseEntity<List<ImagerPostDTO>> getImagerPostsByEmail(String email);
 
     ResponseEntity<ImagerPostDTO> editImagerPost(String id, String payloadJson, MultipartFile image) throws IOException;
 
