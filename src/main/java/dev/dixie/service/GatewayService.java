@@ -3,6 +3,7 @@ package dev.dixie.service;
 import com.nimbusds.jose.shaded.gson.Gson;
 import dev.dixie.model.dto.ImagerPostDTO;
 import dev.dixie.model.dto.ImagerPostUploadData;
+import dev.dixie.service.interfaces.Gateway;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -22,7 +23,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class GatewayService {
+public class GatewayService implements Gateway {
 
     private final static String BASE_URL = "http://localhost:8080/imager";
     private final static String UPLOAD_URL = "/upload";
@@ -33,6 +34,7 @@ public class GatewayService {
     private final RestTemplate restTemplate;
     private final Gson jsonParser = new Gson();
 
+    @Override
     public ResponseEntity<String> uploadImagerPost(String payloadJson, MultipartFile image, Authentication authentication) throws IOException {
         var email = authentication.getName();
         log.info("UploadImagerPost | JSON:{}, Email:{}, Image:{}", payloadJson, email, image);
@@ -68,6 +70,7 @@ public class GatewayService {
         };
     }
 
+    @Override
     public ResponseEntity<ImagerPostDTO> getImagerPost(String id) {
         log.info("GetImagerPost | ID:{}", id);
         var uri = UriComponentsBuilder.fromUriString(BASE_URL + POST_URL).queryParam("id", id).toUriString();
@@ -75,6 +78,7 @@ public class GatewayService {
         return restTemplate.getForEntity(uri, ImagerPostDTO.class);
     }
 
+    @Override
     public ResponseEntity<List<ImagerPostDTO>> getImagerPostsByUsername(String username) {
         log.info("GetImagerPostsByUsername | Username:{}", username);
         var uri = UriComponentsBuilder.fromUriString(BASE_URL + POSTS_URL).queryParam("username", username).toUriString();
@@ -83,6 +87,7 @@ public class GatewayService {
         return restTemplate.exchange(uri, HttpMethod.GET, null, response);
     }
 
+    @Override
     public ResponseEntity<ImagerPostDTO> editImagerPost(String id, String payloadJson, MultipartFile image) throws IOException {
         log.info("EditImagerPost | ID:{}, JSON:{}, Image:{}", id, payloadJson, image);
         var uri = UriComponentsBuilder.fromUriString(BASE_URL + EDIT_URL).toUriString();
@@ -93,6 +98,7 @@ public class GatewayService {
         return restTemplate.exchange(uri, HttpMethod.PATCH, new HttpEntity<>(body, setHeaders()), ImagerPostDTO.class);
     }
 
+    @Override
     public ResponseEntity<String> deleteImagerPost(String id) {
         log.info("DeleteImagerPost | ID:{}", id);
         var uri = UriComponentsBuilder.fromUriString(BASE_URL + DELETE_URL).queryParam("id", id).toUriString();

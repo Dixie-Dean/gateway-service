@@ -1,4 +1,4 @@
-package dev.dixie.service;
+package dev.dixie.service.interfaces;
 
 import dev.dixie.exception.EmailAlreadyTakenException;
 import dev.dixie.model.dto.SignInData;

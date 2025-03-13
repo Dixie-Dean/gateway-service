@@ -6,6 +6,7 @@ import dev.dixie.model.dto.SignUpData;
 import dev.dixie.model.entity.ImagerUser;
 import dev.dixie.repository.UserRepository;
 import dev.dixie.role.Role;
+import dev.dixie.service.interfaces.Security;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
