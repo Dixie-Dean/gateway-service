@@ -2,7 +2,6 @@ package dev.dixie.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import dev.dixie.exception.ImagerPostNotFoundException;
 import dev.dixie.model.dto.ImagerPostDTO;
 import dev.dixie.model.dto.ImagerPostUploadData;
 import dev.dixie.model.dto.adapter.LocalDateTimeAdapter;
