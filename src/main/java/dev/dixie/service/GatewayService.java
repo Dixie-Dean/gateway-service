@@ -106,7 +106,7 @@ public class GatewayService implements Gateway {
             var postJson = jedis.get(key);
             if (postJson != null) {
                 var imagerPostDTO = jsonParser.fromJson(postJson, ImagerPostDTO.class);
-                return Optional.ofNullable(imagerPostDTO);
+                return Optional.of(imagerPostDTO);
             } else {
                 return Optional.empty();
             }
