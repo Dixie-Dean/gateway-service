@@ -1,19 +1,16 @@
 package dev.dixie.controller;
 
 import dev.dixie.model.dto.ImagerPostDTO;
-import dev.dixie.service.GatewayService;
+import dev.dixie.service.interfaces.Gateway;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @RestController
@@ -21,7 +18,7 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/gateway")
 public class GatewayController {
 
-    private final GatewayService gatewayService;
+    private final Gateway gatewayService;
 
     @PostMapping(value = "/upload")
     public ResponseEntity<String> uploadImagerPost(@RequestPart("data") String payloadJson,
@@ -32,13 +29,13 @@ public class GatewayController {
 
     @GetMapping("/post")
     public ResponseEntity<ImagerPostDTO> getImagerPost(@RequestParam String id) {
-        return gatewayService.getImagerPost(id);
+        return gatewayService.getCachedImagerPost(id);
     }
 
 
     @GetMapping("/posts")
-    public ResponseEntity<List<ImagerPostDTO>> getImagerPostsByUsername(@RequestParam String username) {
-        return gatewayService.getImagerPostsByUsername(username);
+    public ResponseEntity<List<ImagerPostDTO>> getImagerPostsByEmail(@RequestParam String email) {
+        return gatewayService.getCachedImagerPostsByEmail(email);
     }
 
     @PatchMapping("/edit")

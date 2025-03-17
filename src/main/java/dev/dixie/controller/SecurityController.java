@@ -3,7 +3,7 @@ package dev.dixie.controller;
 import dev.dixie.exception.EmailAlreadyTakenException;
 import dev.dixie.model.dto.SignInData;
 import dev.dixie.model.dto.SignUpData;
-import dev.dixie.service.Security;
+import dev.dixie.service.interfaces.Security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
