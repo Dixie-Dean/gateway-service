@@ -31,13 +31,13 @@ import java.util.concurrent.Executors;
 @Service
 public class GatewayService implements Gateway {
 
-    private final static String BASE_URL = "http://localhost:8080/imager";
-    private final static String UPLOAD_URL = "/upload";
-    private final static String POST_URL = "/post";
-    private final static String POSTS_URL = "/posts";
-    private final static String EDIT_URL = "/edit";
-    private final static String DELETE_URL = "/delete";
-    private final static long TTL = 60;
+    private static final String BASE_URL = "http://localhost:8080/imager";
+    private static final String UPLOAD_URL = "/upload";
+    private static final String POST_URL = "/post";
+    private static final String POSTS_URL = "/posts";
+    private static final String EDIT_URL = "/edit";
+    private static final String DELETE_URL = "/delete";
+    private static final long TTL = 60; //seconds
 
     private final RestTemplate restTemplate;
     private final ExecutorService executorService;
@@ -155,11 +155,12 @@ public class GatewayService implements Gateway {
     }
 
     private void pushListToCache(List<ImagerPostDTO> posts) {
-        var email = posts.stream().findFirst().map(ImagerPostDTO::getUser).get();
+        var email = posts.stream().findFirst().map(ImagerPostDTO::getUser).orElseThrow();
         try(var pipeline = jedisPool.getResource().pipelined()) {
             var key = "posts:%s".formatted(email);
             for (var post : posts) {
                 pipeline.lpush(key, jsonParser.toJson(post));
+                pipeline.expire(key, TTL);
             }
             pipeline.sync();
         }
