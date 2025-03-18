@@ -65,7 +65,9 @@ public class GatewayService implements Gateway {
     }
 
     private String appendEmail(String json, String email) {
-        var imagerPostUploadData = jsonParser.fromJson(json, ImagerPostUploadData.class);
+        var imagerPostUploadData = Objects.requireNonNullElseGet(
+                jsonParser.fromJson(json, ImagerPostUploadData.class),
+                ImagerPostUploadData::new);
         imagerPostUploadData.setEmail(email);
         return jsonParser.toJson(imagerPostUploadData);
     }
@@ -173,12 +175,13 @@ public class GatewayService implements Gateway {
     }
 
     @Override
-    public ResponseEntity<ImagerPostDTO> editImagerPost(String id, String payloadJson, MultipartFile image) throws IOException {
-        log.info("EditImagerPost | ID:{}, JSON:{}, Image:{}", id, payloadJson, image);
+    public ResponseEntity<ImagerPostDTO> editImagerPost(String id, String payloadJson, MultipartFile image, Authentication authentication) throws IOException {
+        var email = authentication.getName();
+        log.info("EditImagerPost | ID:{}, JSON:{}, Image:{}, Email:{}", id, payloadJson, image, email);
         var uri = UriComponentsBuilder.fromUriString(BASE_URL + EDIT_URL).toUriString();
         var body = new LinkedMultiValueMap<>();
         body.add("id", id);
-        body.add("data", payloadJson);
+        body.add("data", appendEmail(payloadJson, email));
         body.add("image", convertToResource(image));
         return restTemplate.exchange(uri, HttpMethod.PATCH, new HttpEntity<>(body, setHeaders()), ImagerPostDTO.class);
     }

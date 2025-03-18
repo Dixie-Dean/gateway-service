@@ -41,8 +41,9 @@ public class GatewayController {
     @PatchMapping("/edit")
     public ResponseEntity<ImagerPostDTO> editPost(@RequestPart("id") String id,
                                                   @RequestPart(value = "data", required = false) String payloadJson,
-                                                  @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
-        return gatewayService.editImagerPost(id, payloadJson, image);
+                                                  @RequestPart(value = "image", required = false) MultipartFile image,
+                                                  Authentication authentication) throws IOException {
+        return gatewayService.editImagerPost(id, payloadJson, image, authentication);
     }
 
     @DeleteMapping("/delete")

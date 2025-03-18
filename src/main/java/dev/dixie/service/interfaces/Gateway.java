@@ -20,7 +20,7 @@ public interface Gateway {
 
     ResponseEntity<List<ImagerPostDTO>> getImagerPostsByEmail(String email);
 
-    ResponseEntity<ImagerPostDTO> editImagerPost(String id, String payloadJson, MultipartFile image) throws IOException;
+    ResponseEntity<ImagerPostDTO> editImagerPost(String id, String payloadJson, MultipartFile image, Authentication authentication) throws IOException;
 
     ResponseEntity<String> deleteImagerPost(String id);
 }
