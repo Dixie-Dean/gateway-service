@@ -1,11 +1,10 @@
 package dev.dixie.service;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import dev.dixie.model.dto.ImagerPostDTO;
 import dev.dixie.model.dto.ImagerPostUploadData;
-import dev.dixie.model.dto.adapter.LocalDateTimeAdapter;
 import dev.dixie.service.interfaces.Gateway;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
@@ -20,7 +19,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,6 +27,7 @@ import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GatewayService implements Gateway {
 
     private static final String BASE_URL = "http://localhost:8080/imager";
@@ -39,19 +38,10 @@ public class GatewayService implements Gateway {
     private static final String DELETE_URL = "/delete";
     private static final long TTL = 60; //seconds
 
+    private final static ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(10);
     private final RestTemplate restTemplate;
-    private final ExecutorService executorService;
     private final JedisPool jedisPool;
     private final Gson jsonParser;
-
-    public GatewayService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-        this.executorService = Executors.newFixedThreadPool(10);
-        this.jedisPool = new JedisPool("localhost", 6380);
-        this.jsonParser = new GsonBuilder()
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-                .create();
-    }
 
     @Override
     public ResponseEntity<String> uploadImagerPost(String payloadJson, MultipartFile image, Authentication authentication) throws IOException {
@@ -95,7 +85,7 @@ public class GatewayService implements Gateway {
     public ResponseEntity<ImagerPostDTO> getCachedImagerPost(String id) {
         var post = getPostFromCache(id).orElseGet(() -> {
             var imagerPostDTO = Objects.requireNonNull(getImagerPost(id).getBody());
-            executorService.execute(() -> pushPostToCache(imagerPostDTO));
+            EXECUTOR_SERVICE.execute(() -> pushPostToCache(imagerPostDTO));
             return imagerPostDTO;
         });
         return ResponseEntity.ok(post);
@@ -135,7 +125,7 @@ public class GatewayService implements Gateway {
     public ResponseEntity<List<ImagerPostDTO>> getCachedImagerPostsByEmail(String email) {
         var posts = getListFromCache(email).orElseGet(() -> {
             var imagerPostDTOs = Objects.requireNonNull(getImagerPostsByEmail(email).getBody());
-            executorService.execute(() -> pushListToCache(imagerPostDTOs));
+            EXECUTOR_SERVICE.execute(() -> pushListToCache(imagerPostDTOs));
             return imagerPostDTOs;
         });
         return ResponseEntity.ok(posts);
