@@ -10,7 +10,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,6 +24,8 @@ import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
@@ -134,22 +138,21 @@ public class GatewayServiceTest {
 
     @Test
     void getCachedImagerPost_CacheMiss_FetchesFromFallback() {
-        try (var jedis = Mockito.mock(Jedis.class)) {
+        var jedis = Mockito.mock(Jedis.class);
+        when(jedisPool.getResource()).thenReturn(jedis);
+        when(jedis.get(anyString())).thenReturn(null);
 
-            when(jedisPool.getResource()).thenReturn(jedis);
-            when(jedis.get(anyString())).thenReturn(null);
+        when(restTemplate.getForEntity(anyString(), eq(ImagerPostDTO.class)))
+                .thenReturn(ResponseEntity.ok(IMAGER_POST_DTO));
 
-            when(restTemplate.getForEntity(anyString(), eq(ImagerPostDTO.class)))
-                    .thenReturn(ResponseEntity.ok(IMAGER_POST_DTO));
+        var response = gatewayService.getCachedImagerPost(ID);
 
-            var response = gatewayService.getCachedImagerPost(ID);
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(IMAGER_POST_DTO, response.getBody());
 
-            assertNotNull(response);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(IMAGER_POST_DTO, response.getBody());
-
-            verify(executorService, atLeastOnce()).execute(any(Runnable.class));
-        }
+        verify(executorService, atLeastOnce()).execute(any(Runnable.class));
+        verify(jedis).close();
     }
 
     @Test
@@ -163,5 +166,65 @@ public class GatewayServiceTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
         verify(restTemplate, atLeastOnce()).getForEntity(anyString(), eq(ImagerPostDTO.class));
+    }
+
+    @Test
+    void getCachedImagerPostsByEmail_CacheHit_ReturnsPostsFromCache() {
+        var key = "posts:user@gmail.com";
+        var parameterizedTypeReference = new ParameterizedTypeReference<List<ImagerPostDTO>>() {};
+        var jedis = Mockito.mock(Jedis.class);
+        when(jedisPool.getResource()).thenReturn(jedis);
+        when(jedis.lrange(key, 0, -1)).thenReturn(List.of(IMAGER_POST_DTO_JSON));
+        when(jsonParser.fromJson(IMAGER_POST_DTO_JSON, ImagerPostDTO.class)).thenReturn(IMAGER_POST_DTO);
+
+        var response = gatewayService.getCachedImagerPostsByEmail(EMAIL);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(List.of(IMAGER_POST_DTO), response.getBody());
+
+        verify(jedis, atLeastOnce()).lrange(key, 0, -1);
+        verify(jsonParser, atLeastOnce()).fromJson(anyString(), eq(ImagerPostDTO.class));
+        verify(restTemplate, never()).exchange(
+                anyString(), eq(HttpMethod.GET), isNull(), eq(parameterizedTypeReference));
+        verify(jedis).close();
+    }
+
+    @Test
+    void getCachedImagerPostsByEmail_CacheMiss_FetchesFromFallback() {
+        var key = "posts:user@gmail.com";
+        var parameterizedTypeReference = new ParameterizedTypeReference<List<ImagerPostDTO>>() {};
+        var jedis = Mockito.mock(Jedis.class);
+        when(jedisPool.getResource()).thenReturn(jedis);
+        when(jedis.lrange(key, 0, -1)).thenReturn(Collections.emptyList());
+        when(restTemplate.exchange(
+                anyString(), eq(HttpMethod.GET), isNull(), eq(parameterizedTypeReference)))
+                .thenReturn(ResponseEntity.ok(List.of(IMAGER_POST_DTO)));
+
+        var response = gatewayService.getCachedImagerPostsByEmail(EMAIL);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(List.of(IMAGER_POST_DTO), response.getBody());
+
+        verify(executorService, atLeastOnce()).execute(any(Runnable.class));
+        verify(jedis).close();
+    }
+
+    @Test
+    void getImagerPostsByEmail_SuccessfullyReturnsPosts() {
+        var parameterizedTypeReference = new ParameterizedTypeReference<List<ImagerPostDTO>>() {};
+        var body = List.of(new ImagerPostDTO(), new ImagerPostDTO());
+
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), isNull(), eq(parameterizedTypeReference)))
+                .thenReturn(ResponseEntity.ok(body));
+
+        var response = gatewayService.getImagerPostsByEmail(EMAIL);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        verify(restTemplate, atLeastOnce()).exchange(
+                anyString(), eq(HttpMethod.GET), isNull(), eq(parameterizedTypeReference));
     }
 }
