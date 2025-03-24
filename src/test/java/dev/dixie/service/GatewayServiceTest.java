@@ -3,7 +3,6 @@ package dev.dixie.service;
 import com.google.gson.Gson;
 import dev.dixie.model.dto.ImagerPostDTO;
 import dev.dixie.model.dto.ImagerPostUploadData;
-import lombok.ToString;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,20 +17,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.util.UriComponentsBuilder;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -39,17 +32,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class GatewayServiceTest {
 
-//    private static final String BASE_URL = "http://localhost:8080/imager";
-//    private static final String UPLOAD_URL = "/upload";
-//    private static final String POST_URL = "/post";
-//    private static final String POSTS_URL = "/posts";
-//    private static final String EDIT_URL = "/edit";
-//    private static final String DELETE_URL = "/delete";
-    private static final long TTL = 60;
     private static final String EMAIL = "user@gmail.com";
-    private static final String MESSAGE = "message";
-    private static final long POST_TTL = 10;
-    private static final String PAYLOAD_JSON_WITH_EMAIL = "{\"message\":\"message\",\"ttl\":10,\"email\":\"user@gmail.com\"}";
     private static final String PAYLOAD_JSON_NO_EMAIL = "{\"message\":\"message\",\"ttl\":10}";
     private static final String ID = "ABCDEFGH";
 
@@ -226,5 +209,35 @@ public class GatewayServiceTest {
 
         verify(restTemplate, atLeastOnce()).exchange(
                 anyString(), eq(HttpMethod.GET), isNull(), eq(parameterizedTypeReference));
+    }
+
+    @Test
+    void editImagerPost_Success() throws IOException {
+        when(authentication.getName()).thenReturn(EMAIL);
+        var mockImage = Mockito.mock(MultipartFile.class);
+        when(mockImage.getBytes()).thenReturn("image-data".getBytes());
+
+        when(restTemplate.exchange(
+                anyString(), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(ImagerPostDTO.class)))
+                .thenReturn(ResponseEntity.ok(IMAGER_POST_DTO));
+
+        var response = gatewayService.editImagerPost(ID, PAYLOAD_JSON_NO_EMAIL, mockImage, authentication);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(IMAGER_POST_DTO, response.getBody());
+    }
+
+    @Test
+    void deleteImagerPost_Success() {
+        var responseMessage = "deleted";
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.DELETE), isNull(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(responseMessage));
+
+        var response = gatewayService.deleteImagerPost(ID);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(responseMessage, response.getBody());
     }
 }
