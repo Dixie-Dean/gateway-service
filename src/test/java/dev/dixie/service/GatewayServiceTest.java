@@ -1,7 +1,9 @@
 package dev.dixie.service;
 
 import com.google.gson.Gson;
+import dev.dixie.model.dto.ImagerPostDTO;
 import dev.dixie.model.dto.ImagerPostUploadData;
+import lombok.ToString;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,8 +16,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriComponentsBuilder;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -23,18 +35,39 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class GatewayServiceTest {
 
-    private static final String BASE_URL = "http://localhost:8080/imager";
-    private static final String UPLOAD_URL = "/upload";
-    private static final String POST_URL = "/post";
-    private static final String POSTS_URL = "/posts";
-    private static final String EDIT_URL = "/edit";
-    private static final String DELETE_URL = "/delete";
-//    private static final long TTL = 60;
+//    private static final String BASE_URL = "http://localhost:8080/imager";
+//    private static final String UPLOAD_URL = "/upload";
+//    private static final String POST_URL = "/post";
+//    private static final String POSTS_URL = "/posts";
+//    private static final String EDIT_URL = "/edit";
+//    private static final String DELETE_URL = "/delete";
+    private static final long TTL = 60;
     private static final String EMAIL = "user@gmail.com";
     private static final String MESSAGE = "message";
     private static final long POST_TTL = 10;
     private static final String PAYLOAD_JSON_WITH_EMAIL = "{\"message\":\"message\",\"ttl\":10,\"email\":\"user@gmail.com\"}";
     private static final String PAYLOAD_JSON_NO_EMAIL = "{\"message\":\"message\",\"ttl\":10}";
+    private static final String ID = "ABCDEFGH";
+
+    private static final ImagerPostDTO IMAGER_POST_DTO =
+            new ImagerPostDTO(
+                    ID,
+                    "user@gmail.com",
+                    "image".getBytes(),
+                    "message",
+                    LocalDateTime.now(),
+                    LocalDateTime.now(),
+                    "link");
+
+    private static final String IMAGER_POST_DTO_JSON = "{"
+            + "\"id\":\"ID\","
+            + "\"user\":\"user@gmail.com\","
+            + "\"image\":\"bytes\","
+            + "\"message\":\"message\","
+            + "\"creationTime\":\"2025-03-20T15:30:00\","
+            + "\"expirationTime\":\"2025-03-20T15:30:00\","
+            + "\"link\":\"link\""
+            + "}";
 
     @Mock
     private Gson jsonParser;
@@ -43,7 +76,13 @@ public class GatewayServiceTest {
     private RestTemplate restTemplate;
 
     @Mock
+    private JedisPool jedisPool;
+
+    @Mock
     private Authentication authentication;
+
+    @Mock
+    private ExecutorService executorService;
 
     @InjectMocks
     private GatewayService gatewayService;
@@ -57,8 +96,7 @@ public class GatewayServiceTest {
         var mockImage = Mockito.mock(MultipartFile.class);
         when(mockImage.getBytes()).thenReturn("image-data".getBytes());
 
-        var url = BASE_URL + UPLOAD_URL;
-        when(restTemplate.postForEntity(eq(url), any(HttpEntity.class), eq(String.class)))
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
                 .thenReturn(ResponseEntity.ok(response));
 
         var result = gatewayService.uploadImagerPost(PAYLOAD_JSON_NO_EMAIL, mockImage, authentication);
@@ -72,8 +110,58 @@ public class GatewayServiceTest {
         verify(authentication, atLeastOnce()).getName();
         verify(jsonParser, atLeastOnce()).fromJson(anyString(), eq(ImagerPostUploadData.class));
         verify(jsonParser, atLeastOnce()).toJson(any(ImagerPostUploadData.class));
-        verify(restTemplate, atLeastOnce()).postForEntity(eq(url), any(HttpEntity.class), eq(String.class));
+        verify(restTemplate, atLeastOnce()).postForEntity(anyString(), any(HttpEntity.class), eq(String.class));
     }
 
+    @Test
+    void getCachedImagerPost_CacheHit_ReturnsPostFromCache() {
+        var jedis = Mockito.mock(Jedis.class);
+        when(jedisPool.getResource()).thenReturn(jedis);
+        when(jedis.get(anyString())).thenReturn(IMAGER_POST_DTO_JSON);
+        when(jsonParser.fromJson(IMAGER_POST_DTO_JSON, ImagerPostDTO.class)).thenReturn(IMAGER_POST_DTO);
 
+        var response = gatewayService.getCachedImagerPost(ID);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(IMAGER_POST_DTO, response.getBody());
+
+        verify(jedis, atLeastOnce()).get(anyString());
+        verify(jsonParser, atLeastOnce()).fromJson(anyString(), eq(ImagerPostDTO.class));
+        verify(restTemplate, never()).getForEntity(anyString(), eq(ImagerPostDTO.class));
+        verify(jedis).close();
+    }
+
+    @Test
+    void getCachedImagerPost_CacheMiss_FetchesFromFallback() {
+        try (var jedis = Mockito.mock(Jedis.class)) {
+
+            when(jedisPool.getResource()).thenReturn(jedis);
+            when(jedis.get(anyString())).thenReturn(null);
+
+            when(restTemplate.getForEntity(anyString(), eq(ImagerPostDTO.class)))
+                    .thenReturn(ResponseEntity.ok(IMAGER_POST_DTO));
+
+            var response = gatewayService.getCachedImagerPost(ID);
+
+            assertNotNull(response);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(IMAGER_POST_DTO, response.getBody());
+
+            verify(executorService, atLeastOnce()).execute(any(Runnable.class));
+        }
+    }
+
+    @Test
+    void getImagerPost_SuccessfullyReturnsPost() {
+        when(restTemplate.getForEntity(anyString(), eq(ImagerPostDTO.class)))
+                .thenReturn(ResponseEntity.ok(new ImagerPostDTO()));
+
+        var response = gatewayService.getImagerPost(ID);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        verify(restTemplate, atLeastOnce()).getForEntity(anyString(), eq(ImagerPostDTO.class));
+    }
 }

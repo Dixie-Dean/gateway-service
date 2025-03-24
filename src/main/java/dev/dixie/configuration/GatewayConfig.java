@@ -12,6 +12,8 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Configuration
 public class GatewayConfig {
@@ -35,6 +37,11 @@ public class GatewayConfig {
     public JedisPool jedisPool() {
         var jedisPoolConfig = new JedisPoolConfig();
         jedisPoolConfig.setJmxEnabled(false);
-        return new JedisPool(jedisPoolConfig, "localhost", 6381);
+        return new JedisPool(jedisPoolConfig, "localhost", 6380);
+    }
+
+    @Bean
+    public ExecutorService executorService() {
+        return Executors.newFixedThreadPool(10);
     }
 }

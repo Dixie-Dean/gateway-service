@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
@@ -38,7 +37,7 @@ public class GatewayService implements Gateway {
     private static final String DELETE_URL = "/delete";
     private static final long TTL = 60; //seconds
 
-    private final static ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(10);
+    private final ExecutorService executorService;
     private final RestTemplate restTemplate;
     private final JedisPool jedisPool;
     private final Gson jsonParser;
@@ -85,7 +84,7 @@ public class GatewayService implements Gateway {
     public ResponseEntity<ImagerPostDTO> getCachedImagerPost(String id) {
         var post = getPostFromCache(id).orElseGet(() -> {
             var imagerPostDTO = Objects.requireNonNull(getImagerPost(id).getBody());
-            EXECUTOR_SERVICE.execute(() -> pushPostToCache(imagerPostDTO));
+            executorService.execute(() -> pushPostToCache(imagerPostDTO));
             return imagerPostDTO;
         });
         return ResponseEntity.ok(post);
@@ -106,6 +105,7 @@ public class GatewayService implements Gateway {
 
     private void pushPostToCache(ImagerPostDTO post) {
         var id = post.getId();
+        log.info("pushPostToCache | post:{}", post);
         try(var jedis = jedisPool.getResource()) {
             var key = "post:%s".formatted(id);
             var postJson = jsonParser.toJson(post);
@@ -125,7 +125,7 @@ public class GatewayService implements Gateway {
     public ResponseEntity<List<ImagerPostDTO>> getCachedImagerPostsByEmail(String email) {
         var posts = getListFromCache(email).orElseGet(() -> {
             var imagerPostDTOs = Objects.requireNonNull(getImagerPostsByEmail(email).getBody());
-            EXECUTOR_SERVICE.execute(() -> pushListToCache(imagerPostDTOs));
+            executorService.execute(() -> pushListToCache(imagerPostDTOs));
             return imagerPostDTOs;
         });
         return ResponseEntity.ok(posts);
