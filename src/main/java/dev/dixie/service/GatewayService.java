@@ -1,11 +1,10 @@
 package dev.dixie.service;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import dev.dixie.model.dto.ImagerPostDTO;
 import dev.dixie.model.dto.ImagerPostUploadData;
-import dev.dixie.model.dto.adapter.LocalDateTimeAdapter;
 import dev.dixie.service.interfaces.Gateway;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
@@ -20,15 +19,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GatewayService implements Gateway {
 
     private static final String BASE_URL = "http://localhost:8080/imager";
@@ -39,19 +37,10 @@ public class GatewayService implements Gateway {
     private static final String DELETE_URL = "/delete";
     private static final long TTL = 60; //seconds
 
-    private final RestTemplate restTemplate;
     private final ExecutorService executorService;
+    private final RestTemplate restTemplate;
     private final JedisPool jedisPool;
     private final Gson jsonParser;
-
-    public GatewayService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-        this.executorService = Executors.newFixedThreadPool(10);
-        this.jedisPool = new JedisPool("localhost", 6380);
-        this.jsonParser = new GsonBuilder()
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-                .create();
-    }
 
     @Override
     public ResponseEntity<String> uploadImagerPost(String payloadJson, MultipartFile image, Authentication authentication) throws IOException {
@@ -116,6 +105,7 @@ public class GatewayService implements Gateway {
 
     private void pushPostToCache(ImagerPostDTO post) {
         var id = post.getId();
+        log.info("pushPostToCache | post:{}", post);
         try(var jedis = jedisPool.getResource()) {
             var key = "post:%s".formatted(id);
             var postJson = jsonParser.toJson(post);
