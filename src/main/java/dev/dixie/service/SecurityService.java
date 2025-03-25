@@ -53,7 +53,7 @@ public class SecurityService implements Security {
         var email = signInData.getEmail();
         var password = signInData.getPassword();
         log.info("SignIn | Email:{}, Password:{}", email, password);
-        var authenticate = manager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-        return tokenService.generateToken(authenticate);
+        var authentication = manager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+        return tokenService.generateToken(authentication);
     }
 }
